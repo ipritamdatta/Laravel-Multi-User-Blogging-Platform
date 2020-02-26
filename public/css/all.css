@@ -10966,3 +10966,7 @@ a.text-dark:focus {
     margin-top: -25px;
     background-color: #d2cdcd;
 }
+
+.white-text{
+    color: #ffffff;
+}
