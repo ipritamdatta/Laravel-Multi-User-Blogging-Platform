@@ -17,5 +17,6 @@ Route::get('/blogs/{id}/edit','BlogsController@edit')->name('blogs.edit');
 Route::patch('/blogs/{id}/update','BlogsController@update')->name('blogs.update');
 Route::delete('/blogs/{id}/delete','BlogsController@delete')->name('blogs.delete');
 
+
 // admin routes
 Route::get('/admin','AdminController@index')->name('admin.index');
