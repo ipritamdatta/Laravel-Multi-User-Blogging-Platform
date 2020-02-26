@@ -20,3 +20,6 @@ Route::delete('/blogs/{id}/delete','BlogsController@delete')->name('blogs.delete
 
 // admin routes
 Route::get('/admin','AdminController@index')->name('admin.index');
+
+// route resource
+Route::resource('categories','CategoryController');
