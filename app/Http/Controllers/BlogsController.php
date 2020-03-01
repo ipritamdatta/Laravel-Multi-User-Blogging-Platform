@@ -4,40 +4,104 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Blog;
+use App\Category;
+use Illuminate\Support\Str;
+use Session;
 
 class BlogsController extends Controller
 {
+    public function __construct(){
+        $this->middleware('author',['only' => ['create','store','edit','update']]);
+        $this->middleware('admin',['only' => ['delete','trash','restore','permanentDelete']]);
+    }
+
     public function index(){
-        $blogs = Blog::all();
+        // $blogs = Blog::latest()->get();
+        $blogs = Blog::where('status',1)->latest()->get();
         return view('blogs.index',compact('blogs'));
     }
 
     public function create(){
-        return view('blogs.create');
+
+        $categories = Category::latest()->get();
+        return view('blogs.create',compact('categories'));
     }
 
     public function store(Request $request){
-        $input = $request->all();
-        $blog = Blog::create($input);
+        // validate
+        $rules = [
+            'title'=> ['required','min:20','max:160'],
+            'body' => ['required','min:202'],
+        ];
 
+        $this->validate($request, $rules);
+
+        $input = $request->all();
+        // Meta stuff
+        $input['slug'] = Str::slug($request->title);
+        $input['meta_title'] = str_limit($request->title, 55);
+        $input['meta_description'] = str_limit($request->body, 155);
+        // image upload
+        if($file = $request->file('featured_image')){
+            $name = uniqid() . $file->getClientOriginalName();
+            $name = strtolower(str_replace(' ','-',$name));
+            $file->move('images/featured_image/',$name);
+            $input['featured_image'] = $name;
+        }
+
+        // $blog = Blog::create($input);
+        $blogByUser = $request->user()->blogs()->create($input);
+        // sync with categories
+        if($request->category_id){
+            $blogByUser->category()->sync($request->category_id);
+        }
+
+        Session::flash('blog_created_message','Blog Created Successfully');
         return redirect('/blogs');
     }
 
     public function show($id){
         $blog = Blog::findOrFail($id);
+        // $blog = Blog::whereSlug($slug)->first();
         return view('blogs.show',compact('blog'));
     }
 
     public function edit($id){
+        $categories = Category::latest()->get();
         $blog = Blog::findOrFail($id);
-        return view('blogs.edit', ['blog' => $blog]);
-    }
 
+        // fc = filtered categories
+        $bc = array();
+        foreach($blog->category as $c){
+            $bc[] = $c->id - 1;
+        }
+
+        $filtered = array_except($categories, $bc);
+
+        return view('blogs.edit', ['blog' => $blog,'categories'=>$categories, 'filtered'=>$filtered]);
+    }
+ 
     public function update(Request $request, $id){
+        // dd($request->status);
         $input = $request->all();
         $blog = Blog::findOrFail($id);
-        $blog->update($input);
 
+        if($file = $request->file('featured_image')){
+            if($blog->featured_image){
+                unlink('images/featured_image/'.$blog->featured_image);
+            }
+            $name = uniqid() . $file->getClientOriginalName();
+            $name = strtolower(str_replace(' ','-',$name));
+            $file->move('images/featured_image/',$name);
+            $input['featured_image'] = $name;
+        }
+
+        $blog->update($input);
+        // sync with categories
+        if($request->category_id){
+            $blog->category()->sync($request->category_id);
+        }
+        
         return redirect('blogs');
     }
 

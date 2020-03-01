@@ -50,9 +50,10 @@ class CategoryController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show($slug)
     {
-        //
+        $category = Category::where('slug',$slug)->first();
+        return view('categories.show',compact('category'));
     }
 
     /**
@@ -63,7 +64,8 @@ class CategoryController extends Controller
      */
     public function edit($id)
     {
-        //
+        $category = Category::findOrFail($id);
+        return view('categories.edit',compact('category'));
     }
 
     /**
@@ -75,7 +77,12 @@ class CategoryController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+        $category = Category::findOrFail($id);
+        $category->name = $request->name;
+        $category->slug =  Str::slug($request['name'],'-');
+        $category->save();
+
+        return redirect('categories');
     }
 
     /**
@@ -86,6 +93,9 @@ class CategoryController extends Controller
      */
     public function destroy($id)
     {
-        //
+        $category = Category::findOrFail($id);
+        $category->delete();
+
+        return redirect('categories');
     }
 }
